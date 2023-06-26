@@ -1,0 +1,120 @@
+---
+title: "LATE IV"
+output: html_document
+date: "2023-06-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+It is common to use instrumental variable regression for analyzing experiments, e.g., GOTV, and lotteries, where we only a fraction of the people comply. One of the standard assumptions behind the standard LATE estimate is that only compliers are going to see a treatment effect. For instance, we don't expect GOTV efforts over the phone to affect people we aren't able to reach at home. Or we don't expect people who were merely drawn up in the Vietnam Draft Lottery to have different attitudes towards minorities. Whatever effects we see, we expect them to result from service. All of this implies that the distribution of ITT looks closer to Figure 1d here: http://www.stat.columbia.edu/~gelman/research/unpublished/causal_quartets.pdf 
+
+One way to check if the data are consistent with the implications about how the effect is distributed is to simulate out the lumpy treatment effect and then check how closely the empirical distribution matches the theorized.
+
+Let's start by simulating some data --- a treatment vector, a compliance vector with compliance probability of .1, two variables, $y_iv$, which draws from a random normal that has a mean of 5 and standard deviation of 2 except in the complier-treatment group where the mean is 10. The $y_uni$ draws from a random normal with mean 5 and standard deviation 2 in the control group. In the treatment group, it takes the mean that is shifted by the average treatment effect of $y_iv$.
+
+```{r}
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+
+# Set seed for reproducibility
+set.seed(123)
+
+n_resp = 10000
+# Generate random treatment variable (1 or 0)
+treatment <- rbinom(n = n_resp, size = 1, prob = 0.5)
+
+# Generate random compliance variable (1 or 0)
+compliance <- rbinom(n = n_resp, size = 1, prob = 0.2)
+
+treat_compliers = sum()
+
+# Generate y_iv variable
+y_iv <- ifelse(treatment == 1 & compliance == 1, 
+               rnorm(n = n_resp, mean = 10, sd = 2), 
+               rnorm(n = n_resp, mean = 5, sd = 2))
+
+# Calculate the overall mean effect of treatment for y_iv
+mean_effect <- mean(y_iv[treatment == 1]) - mean(y_iv[treatment == 0])
+
+# Generate y_uni variable with the same average effect of treatment as y_iv
+y_uni <- ifelse(treatment == 1,
+                rnorm(n = n_resp, mean = 5 + mean_effect, sd = 2), 
+                rnorm(n = n_resp, mean = 5, sd = 2))
+
+# Create a data frame with the simulated data
+data <- data.frame(treatment = treatment, compliance = compliance, y_iv = y_iv, y_uni = y_uni)
+
+# Calculate the treatment effect for y_uni
+treatment_effect_uni <- mean(data$y_uni[data$treatment == 1]) - mean(data$y_uni[data$treatment == 0])
+
+# Calculate the treatment effect for y_iv
+treatment_effect_iv <- mean(data$y_iv[data$treatment == 1]) - mean(data$y_iv[data$treatment == 0])
+
+# Print the treatment effect sizes
+cat("Treatment Effect Size (y_uni):", treatment_effect_uni, "\n")
+cat("Treatment Effect Size (y_iv):", treatment_effect_iv, "\n")
+
+data %>% 
+	group_by(treatment, compliance) %>% 
+	summarize(mean(y_iv), mean(y_uni))
+
+summary(lm(y_iv ~ treatment))
+summary(lm(y_uni ~ treatment))
+```
+
+Let's simulate out the treatment effects if we randomly drop 5% of the data for the two variables.
+
+```{r}
+
+num_simulations <- 1000
+
+# Function to calculate treatment effect
+calculate_effect <- function(data, variable) {
+  treatment_effect <- mean(data[[variable]][data$treatment == 1]) - mean(data[[variable]][data$treatment == 0])
+  return(treatment_effect)
+}
+# Function to simulate treatment effects
+simulate_effects <- function(data, variables) {
+  treatment_effects <- lapply(variables, function(variable) {
+    replicate(num_simulations, {
+      sampled_data <- data[sample(nrow(data), replace = FALSE), ]
+      dropped_rows <- sample(nrow(sampled_data), nrow(sampled_data) * 0.05)
+      sampled_data <- sampled_data[-dropped_rows, ]
+      calculate_effect(sampled_data, variable)
+    })
+  })
+  return(treatment_effects)
+}
+
+# Define variables for treatment effects
+variables <- c("y_iv", "y_uni")
+
+# Simulate treatment effects for y_iv and y_uni
+treatment_effects <- simulate_effects(data, variables)
+
+# Extract treatment effects for y_iv and y_uni
+treatment_effects_iv <- treatment_effects[[1]]
+treatment_effects_uni <- treatment_effects[[2]]
+
+# Plot histograms of treatment effects side by side
+plot_data <- data.frame(Treatment_Effect_IV = treatment_effects_iv, Treatment_Effect_Uni = treatment_effects_uni)
+
+# Plot density of treatment effects with legend
+ggplot(plot_data) +
+  geom_density(aes(Treatment_Effect_IV, fill = "y_iv"), alpha = 0.5) +
+  geom_density(aes(Treatment_Effect_Uni, fill = "y_uni"), alpha = 0.5) +
+  labs(x = "Treatment Effect", y = "Density", title = "Density Plot of Treatment Effects") +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  scale_fill_manual(values = c("y_iv" = "steelblue", "y_uni" = "darkorange"),
+                    labels = c("y_iv", "y_uni"))
+
+
+# Calculate the frequency at which y_iv effect is greater than y_uni effect
+frequency <- sum(treatment_effects_iv > treatment_effects_uni) / num_simulations
+frequency
+```

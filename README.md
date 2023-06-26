@@ -1,4 +1,4 @@
-# LATE IV: Distributional Implications of LATE 
+### LATE IV: Distributional Implications of LATE 
 
 It is common to use instrumental variable regression for analyzing experiments, e.g., GOTV, and lotteries, where only a fraction of the 
 people comply. One of the standard assumptions behind the standard LATE estimate is that only compliers are going to see a treatment effect. 
@@ -9,4 +9,7 @@ result from service. All of this implies that the distribution of ITT looks clos
 
 One way to check if the data are consistent with the implications of how the effect is distributed is to simulate the lumpy treatment 
 effect and then check how closely the empirical distribution matches the theorized.
+
+Simulation script [here](https://github.com/soodoku/late_iv/blob/main/late_iv.md)
+
 

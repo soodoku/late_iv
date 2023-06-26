@@ -1,6 +1,6 @@
 ---
 title: "LATE IV"
-output: html_document
+output: md_document
 date: "2023-06-26"
 ---
 
@@ -8,9 +8,10 @@ date: "2023-06-26"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-It is common to use instrumental variable regression for analyzing experiments, e.g., GOTV, and lotteries, where we only a fraction of the people comply. One of the standard assumptions behind the standard LATE estimate is that only compliers are going to see a treatment effect. For instance, we don't expect GOTV efforts over the phone to affect people we aren't able to reach at home. Or we don't expect people who were merely drawn up in the Vietnam Draft Lottery to have different attitudes towards minorities. Whatever effects we see, we expect them to result from service. All of this implies that the distribution of ITT looks closer to Figure 1d here: http://www.stat.columbia.edu/~gelman/research/unpublished/causal_quartets.pdf 
+It is common to use instrumental variable regression for analyzing experiments, e.g., GOTV, and lotteries, where only a fraction of the people comply. One of the standard assumptions behind the standard LATE estimate is that only compliers are going to see a treatment effect. For instance, we don't expect GOTV efforts over the phone to affect people we aren't able to reach. Or we don't expect people who were merely drawn up in the Vietnam Draft Lottery to have different attitudes towards minorities. Whatever effects we see, we expect them to result from service. All of this implies that the distribution of ITT looks closer to Figure 1d 
+[here (pdf)](http://www.stat.columbia.edu/~gelman/research/unpublished/causal_quartets.pdf)
 
-One way to check if the data are consistent with the implications about how the effect is distributed is to simulate out the lumpy treatment effect and then check how closely the empirical distribution matches the theorized.
+One way to check if the data are consistent with the implications of how the effect is distributed is to simulate the lumpy treatment effect and then check how closely the empirical distribution matches the theorized.
 
 Let's start by simulating some data --- a treatment vector, a compliance vector with compliance probability of .1, two variables, $y_iv$, which draws from a random normal that has a mean of 5 and standard deviation of 2 except in the complier-treatment group where the mean is 10. The $y_uni$ draws from a random normal with mean 5 and standard deviation 2 in the control group. In the treatment group, it takes the mean that is shifted by the average treatment effect of $y_iv$.
 
